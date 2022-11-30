@@ -1,113 +1,109 @@
 import json
+from config import PATH_TO_CANDIDATES_FILE
 
-def load_candidates(path_to_file):
+
+def load_json(path_to_file: str) -> list[dict]:
     """
     Загружает и конвертирует json данные
     :param path_to_file: путь к файлу
     :return: список с данными
     """
     with open(path_to_file, 'r', encoding='utf-8') as candidates_file:
-        candidates_data = json.load(candidates_file)
+        candidates = json.load(candidates_file)
 
-    return candidates_data
+    return candidates
 
 
-def get_all(candidates_data):
+def format_candidates(candidates: list[dict]) -> str:
     """
-    Формирует строку с выборочными данными (имя, позиция, навыки) по всем кандидатам из списка
-    :param candidates_data: список кандидатов
-    :return: строка для отображения /
+    Формирует строку для вывода
+    :param candidates: список кандидатов
+    :return: строка html для передачи
     """
-    all_candidates = '<pre>'
+    result = '<pre>'
+    for candidate in candidates:
+        result += f'\n{candidate["name"]}\n' \
+                  f'{candidate["position"]}\n' \
+                  f'{candidate["skills"]}\n'
+    result += '</pre>'
 
-    for candidate in candidates_data:
-        all_candidates += f'\n{candidate["name"]}\n{candidate["position"]}\n{candidate["skills"]}\n'
-
-    all_candidates += '</pre>'
-
-    return all_candidates
+    return result
 
 
-def get_all_pk(candidates_data):
+def get_all() -> list[dict]:
+    """
+    Получает список всех кандидатов
+    :return: список с данными по кандидатам
+    """
+    return load_json(PATH_TO_CANDIDATES_FILE)
+
+
+def get_all_pk() -> str:
     """
     Формирует строку со всеми допустимыми значениями pk по всем кандидатам
-    :param candidates_data: список с данными по всем кандидатам
     :return: строка для отображения /candidate
     """
+    candidates = load_json(PATH_TO_CANDIDATES_FILE)
     all_pk = []
 
-    for candidate in candidates_data:
+    for candidate in candidates:
         all_pk.append(str(candidate['pk']))
 
     all_pk = f'<pre>\n' \
-            f'Доступна информация по кандидатам со следующими значениями pk: ' \
-            f'{", ".join(all_pk)}.\n' \
-            f'</pre>'
+             f'Доступна информация по кандидатам со следующими значениями pk: ' \
+             f'{", ".join(all_pk)}.\n' \
+             f'</pre>'
 
     return all_pk
 
 
-def get_by_pk(candidates_data, pk):
+def get_by_pk(pk: str) -> dict | None:
     """
-    Формирует строку с выборочными данными каднидата (картинка, имя, поцизия навыки) по указанному pk.
-    Если такого нет, выводит соответствующее собщение
-    :param candidates_data: список с данными по всем кандидатам
+    Выбирает кандидатов с указанным pk
     :param pk: выбранный pk
-    :return: строка для отображения /candidate/<pk>
+    :return: информация по кандидату
     """
-    pk_candidate = 'Нет кандидата с таким pk.'
-    for candidate in candidates_data:
+    candidates = load_json(PATH_TO_CANDIDATES_FILE)
+
+    for candidate in candidates:
         if candidate['pk'] == pk:
-            pk_candidate = f'<img src="{candidate["picture"]}">\n\n' \
-                           f'<pre>\n' \
-                           f'{candidate["name"]}\n{candidate["position"]}\n{candidate["skills"]}\n' \
-                           f'</pre>'
-            break
+            return candidate
 
-    return pk_candidate
+    return None
 
 
-def get_all_skills(candidates_data):
+def get_all_skills() -> str:
     """
     Формирует строку со всеми допустимыми значениями навыков
-    :param candidates_data: список с данными по всем кандидатам
     :return: строка для отображения /skills
     """
+    candidates = load_json(PATH_TO_CANDIDATES_FILE)
     all_skills = []
 
-    for candidate in candidates_data:
-        all_skills.extend(candidate['skills'].split(', '))
+    for candidate in candidates:
+        all_skills.extend(candidate['skills'].lower().split(', '))
 
-    all_skills = set([skill.lower() for skill in all_skills])
-
-    all_skills = '\n'.join(all_skills)
+    all_skills = '\n'.join(set(all_skills))
     all_skills = f'<pre>\n' \
-            f'Доступны кандидаты со следюущими навыками:\n' \
-            f'{all_skills}.\n' \
-            f'</pre>'
+                 f'Доступны кандидаты со следюущими навыками:\n' \
+                 f'{all_skills}\n' \
+                 f'</pre>'
 
-    print(all_skills)
     return all_skills
 
-def get_by_skill(candidates_data, skill_name):
+
+def get_by_skill(skill_name: str) -> list[dict]:
     """
-    Формирует строку с выборочными данными (имя, позиция, навыки) кандидатов, обладающих указанным навыком
-    :param candidates_data: список данных по всем кандидатам
+    Формирует список кандидатов, у которых есть указанный навык
     :param skill_name: навык для отбора
-    :return: строка для отображения /skills/<skill_name>
+    :return: список с данными по кандидатам с указанным навыком
     """
-    skill_candidates = ''
+    candidates = load_json(PATH_TO_CANDIDATES_FILE)
+    candidates_with_skill = []
     skill_name = skill_name.lower().strip()
 
-    for candidate in candidates_data:
-        candidate_skills = candidate['skills'].split(', ')
-        candidate_skills = [skill.lower() for skill in candidate_skills]
-        if skill_name in candidate_skills:
-            skill_candidates += f'\n{candidate["name"]}\n{candidate["position"]}\n{candidate["skills"]}\n'
+    for candidate in candidates:
+        if skill_name in candidate['skills'].lower().split(', '):
+            candidates_with_skill.append(candidate)
 
-    if skill_candidates == '':
-        skill_candidates = 'Нет кандидатов с такими навыками.'
-
-    skill_candidates = f'<pre>{skill_candidates}</pre>'
-
-    return skill_candidates
+    return candidates_with_skill
